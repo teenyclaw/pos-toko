@@ -33,6 +33,7 @@ interface DashboardStats {
   monthlyRevenue: number;
   customerDebt: number;
   receivables: number;
+  supplierDebt: number;
   lowStockProducts: Array<{ id: number; name: string; stock: number; minStock: number; unit: string }>;
   topProducts: Array<{ id: number; name: string; totalQty: number; totalSales: number }>;
   salesChart: Array<{ date: string; total: number }>;
@@ -200,7 +201,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
                 <p className="text-sm text-muted-foreground">Hutang ke Supplier</p>
-                <p className="text-xl font-bold">{formatCurrency(data?.customerDebt ?? 0)}</p>
+                <p className="text-xl font-bold">{formatCurrency(data?.supplierDebt ?? 0)}</p>
               </div>
               <Badge variant="secondary">Hutang</Badge>
             </div>

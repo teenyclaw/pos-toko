@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { requireAuth, apiSuccess, apiError, parsePagination } from "@/lib/api-utils";
-import { productSchema } from "@/lib/validations";
+import { productWithUnitsSchema } from "@/lib/validations";
 import { generateBarcode } from "@/lib/utils";
 
 export async function GET(request: Request) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   if (error || !session) return error;
 
   const body = await request.json();
-  const parsed = productSchema.safeParse(body);
+  const parsed = productWithUnitsSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.errors[0].message);
 
   const existing = await prisma.product.findFirst({
@@ -49,13 +49,27 @@ export async function POST(request: Request) {
   });
   if (existing) return apiError("Kode atau barcode sudah digunakan");
 
+  const { unitPrices, conversions, ...productData } = parsed.data;
+
   const product = await prisma.product.create({
     data: {
-      ...parsed.data,
-      barcode: parsed.data.barcode || generateBarcode(),
-      supplierId: parsed.data.supplierId ?? null,
+      ...productData,
+      barcode: productData.barcode || generateBarcode(),
+      supplierId: productData.supplierId ?? null,
+      unitPrices: unitPrices?.length
+        ? { create: unitPrices.map((up) => ({ unitId: up.unitId, sellPrice: up.sellPrice })) }
+        : undefined,
+      conversions: conversions?.length
+        ? { create: conversions.map((c) => ({ fromUnitId: c.fromUnitId, toUnitId: c.toUnitId, factor: c.factor })) }
+        : undefined,
     },
-    include: { category: true, baseUnit: true, supplier: true },
+    include: {
+      category: true,
+      baseUnit: true,
+      supplier: true,
+      unitPrices: { include: { unit: true } },
+      conversions: { include: { fromUnit: true, toUnit: true } },
+    },
   });
 
   if (Number(parsed.data.stock) > 0) {

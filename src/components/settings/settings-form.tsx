@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Download } from "lucide-react";
 import { storeSettingSchema } from "@/lib/validations";
 import { DEFAULT_STORE_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,7 @@ export function SettingsForm() {
   }
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <CardTitle>Informasi Toko</CardTitle>
@@ -117,5 +118,18 @@ export function SettingsForm() {
         </form>
       </CardContent>
     </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Backup Data</CardTitle>
+        <CardDescription>Unduh cadangan data toko dalam format JSON</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" onClick={() => { window.location.href = "/api/backup"; }}>
+          <Download className="h-4 w-4" /> Unduh Backup JSON
+        </Button>
+      </CardContent>
+    </Card>
+    </div>
   );
 }

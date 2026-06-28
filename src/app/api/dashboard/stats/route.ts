@@ -18,6 +18,7 @@ export async function GET() {
     monthlySalesAgg,
     customerDebtAgg,
     receivablesAgg,
+    supplierDebtAgg,
     topProductsRaw,
   ] = await Promise.all([
     prisma.sale.aggregate({
@@ -36,6 +37,7 @@ export async function GET() {
       where: { type: "RECEIVABLE" },
       _sum: { amount: true },
     }),
+    prisma.supplier.aggregate({ _sum: { balance: true } }),
     prisma.saleDetail.groupBy({
       by: ["productId"],
       where: { sale: { date: { gte: monthStart, lte: monthEnd }, status: "COMPLETED" } },
@@ -83,6 +85,7 @@ export async function GET() {
     monthlyRevenue: Number(monthlySalesAgg._sum.total ?? 0),
     customerDebt: Number(customerDebtAgg._sum.balance ?? 0),
     receivables: Number(receivablesAgg._sum.amount ?? 0),
+    supplierDebt: Number(supplierDebtAgg._sum.balance ?? 0),
     lowStockProducts: lowStock.map((p) => ({
       id: p.id,
       name: p.name,

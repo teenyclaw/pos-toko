@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { requireAuth, apiSuccess, apiError } from "@/lib/api-utils";
-import { productSchema } from "@/lib/validations";
+import { productWithUnitsSchema } from "@/lib/validations";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAuth();
@@ -28,16 +28,40 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await request.json();
-  const parsed = productSchema.safeParse(body);
+  const parsed = productWithUnitsSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.errors[0].message);
 
-  const product = await prisma.product.update({
-    where: { id: parseInt(id, 10) },
-    data: {
-      ...parsed.data,
-      supplierId: parsed.data.supplierId ?? null,
+  const productId = parseInt(id, 10);
+  const { unitPrices, conversions, ...productData } = parsed.data;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.productUnitPrice.deleteMany({ where: { productId } });
+    await tx.unitConversion.deleteMany({ where: { productId } });
+
+    await tx.product.update({
+      where: { id: productId },
+      data: {
+        ...productData,
+        supplierId: productData.supplierId ?? null,
+        unitPrices: unitPrices?.length
+          ? { create: unitPrices.map((up) => ({ unitId: up.unitId, sellPrice: up.sellPrice })) }
+          : undefined,
+        conversions: conversions?.length
+          ? { create: conversions.map((c) => ({ fromUnitId: c.fromUnitId, toUnitId: c.toUnitId, factor: c.factor })) }
+          : undefined,
+      },
+    });
+  });
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      category: true,
+      baseUnit: true,
+      supplier: true,
+      unitPrices: { include: { unit: true } },
+      conversions: { include: { fromUnit: true, toUnit: true } },
     },
-    include: { category: true, baseUnit: true, supplier: true },
   });
 
   return apiSuccess(product);

@@ -41,6 +41,8 @@ export const NAV_ITEMS: Array<{
   { href: "/customers", label: "Pelanggan", icon: "Users", roles: ["OWNER", "KASIR"] },
   { href: "/purchases", label: "Pembelian", icon: "ShoppingBag", roles: ["OWNER", "GUDANG"] },
   { href: "/stock", label: "Stok", icon: "Warehouse", roles: ["OWNER", "GUDANG"] },
+  { href: "/expenses", label: "Beban Operasional", icon: "Receipt", roles: ["OWNER"] },
+  { href: "/finance", label: "Piutang & Hutang", icon: "Wallet", roles: ["OWNER"] },
   { href: "/reports", label: "Laporan", icon: "BarChart3", roles: ["OWNER"] },
   { href: "/settings", label: "Pengaturan", icon: "Settings", roles: ["OWNER"] },
   { href: "/users", label: "Manajemen User", icon: "UserCog", roles: ["OWNER"] },

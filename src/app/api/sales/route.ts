@@ -81,6 +81,15 @@ export async function POST(request: Request) {
     return apiError("Pembayaran kurang");
   }
 
+  if (parsed.data.paymentMethod === "TEMPO" && parsed.data.customerId) {
+    const customer = await prisma.customer.findUnique({ where: { id: parsed.data.customerId } });
+    if (!customer) return apiError("Pelanggan tidak ditemukan");
+    const newBalance = Number(customer.balance) + total;
+    if (newBalance > Number(customer.creditLimit) && Number(customer.creditLimit) > 0) {
+      return apiError(`Melebihi limit kredit (Rp ${Number(customer.creditLimit).toLocaleString("id-ID")})`);
+    }
+  }
+
   const sale = await prisma.$transaction(async (tx) => {
     const invoiceNumber = generateInvoice("INV");
 

@@ -31,6 +31,7 @@ export function PurchaseForm() {
   const [selectedProduct, setSelectedProduct] = useState("");
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "TEMPO">("CASH");
 
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers"],
@@ -84,6 +85,8 @@ export function PurchaseForm() {
           })),
           discount,
           tax,
+          paymentMethod,
+          paid: paymentMethod === "TEMPO" ? 0 : total,
         }),
       });
       if (!res.ok) {
@@ -104,6 +107,19 @@ export function PurchaseForm() {
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const returnPurchase = async (id: number) => {
+    if (!window.confirm("Retur pembelian ini? Stok akan dikurangi.")) return;
+    const res = await fetch(`/api/purchases/${id}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: "Gagal", description: err.error ?? "Retur gagal", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Berhasil", description: "Retur pembelian berhasil" });
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+  };
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -167,6 +183,14 @@ export function PurchaseForm() {
                   <Input type="number" placeholder="Pajak" value={tax || ""} onChange={(e) => setTax(Number(e.target.value))} />
                 </div>
                 <div className="mt-2 flex justify-between font-bold"><span>Total</span><span>{formatCurrency(total)}</span></div>
+                <div className="mt-3 space-y-2">
+                  <Label>Metode Bayar</Label>
+                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)} className="flex h-10 w-full rounded-md border px-3 text-sm">
+                    <option value="CASH">Tunai (Lunas)</option>
+                    <option value="TRANSFER">Transfer (Lunas)</option>
+                    <option value="TEMPO">Tempo / Hutang</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}
@@ -183,13 +207,21 @@ export function PurchaseForm() {
           {(purchases?.data ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Belum ada pembelian</p>
           ) : (
-            purchases?.data?.map((p: { id: number; invoiceNumber: string; date: string; total: number; supplier: { name: string } }) => (
-              <div key={p.id} className="flex justify-between rounded-lg border p-3 text-sm">
+            purchases?.data?.map((p: { id: number; invoiceNumber: string; date: string; total: number; status: string; supplier: { name: string } }) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                 <div>
                   <p className="font-mono text-xs font-medium">{p.invoiceNumber}</p>
                   <p className="text-muted-foreground">{p.supplier.name} • {format(new Date(p.date), "dd MMM yyyy", { locale: localeId })}</p>
+                  {p.status === "RETURNED" && <p className="text-xs text-destructive">Diretur</p>}
                 </div>
-                <span className="font-semibold">{formatCurrency(p.total)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{formatCurrency(p.total)}</span>
+                  {p.status === "COMPLETED" && (
+                    <Button variant="outline" size="sm" onClick={() => returnPurchase(p.id)} title="Retur">
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))
           )}

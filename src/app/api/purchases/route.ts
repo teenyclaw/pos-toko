@@ -32,6 +32,8 @@ export async function GET(request: Request) {
       discount: Number(p.discount),
       tax: Number(p.tax),
       total: Number(p.total),
+      paid: Number(p.paid),
+      status: p.status,
     })),
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
     0
   );
   const total = subtotal - parsed.data.discount + parsed.data.tax;
+  const paid = parsed.data.paymentMethod === "TEMPO" ? 0 : (parsed.data.paid || total);
 
   const purchaseId = await prisma.$transaction(async (tx) => {
     const invoiceNumber = generateInvoice("PO");
@@ -63,6 +66,8 @@ export async function POST(request: Request) {
         discount: parsed.data.discount,
         tax: parsed.data.tax,
         total,
+        paid,
+        paymentMethod: parsed.data.paymentMethod,
         notes: parsed.data.notes,
         details: {
           create: parsed.data.items.map((item) => ({
@@ -92,6 +97,22 @@ export async function POST(request: Request) {
       await tx.product.update({
         where: { id: item.productId },
         data: { buyPrice: item.unitPrice },
+      });
+    }
+
+    if (parsed.data.paymentMethod === "TEMPO") {
+      await tx.supplier.update({
+        where: { id: parsed.data.supplierId },
+        data: { balance: { increment: total } },
+      });
+      await tx.payment.create({
+        data: {
+          type: "PAYABLE",
+          amount: total,
+          method: "TEMPO",
+          purchaseId: purchase.id,
+          supplierId: parsed.data.supplierId,
+        },
       });
     }
 

@@ -56,6 +56,50 @@ export async function GET(request: Request) {
     });
   }
 
+  if (type === "profit-loss") {
+    const salesAgg = await prisma.sale.aggregate({
+      where: { date: { gte: dateFrom, lte: dateTo }, status: "COMPLETED" },
+      _sum: { total: true },
+    });
+
+    const saleDetails = await prisma.saleDetail.findMany({
+      where: { sale: { date: { gte: dateFrom, lte: dateTo }, status: "COMPLETED" } },
+      include: { product: { select: { buyPrice: true } } },
+    });
+
+    const cogs = saleDetails.reduce(
+      (sum, d) => sum + Number(d.quantity) * Number(d.product.buyPrice),
+      0
+    );
+
+    const expensesAgg = await prisma.expense.aggregate({
+      where: { date: { gte: dateFrom, lte: dateTo } },
+      _sum: { amount: true },
+    });
+
+    const revenue = Number(salesAgg._sum.total ?? 0);
+    const expenses = Number(expensesAgg._sum.amount ?? 0);
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - expenses;
+
+    const expenseList = await prisma.expense.findMany({
+      where: { date: { gte: dateFrom, lte: dateTo } },
+      orderBy: { date: "desc" },
+      include: { user: { select: { name: true } } },
+    });
+
+    return apiSuccess({
+      summary: { revenue, cogs, grossProfit, expenses, netProfit, dateFrom, dateTo },
+      data: expenseList.map((e) => ({
+        title: e.title,
+        category: e.category ?? "-",
+        amount: Number(e.amount),
+        date: e.date,
+        userName: e.user.name,
+      })),
+    });
+  }
+
   if (type === "best-sellers") {
     const items = await prisma.saleDetail.groupBy({
       by: ["productId"],

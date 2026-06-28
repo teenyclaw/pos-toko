@@ -77,6 +77,7 @@ export function PosInterface() {
   const [showHistory, setShowHistory] = useState(false);
   const [showHoldDialog, setShowHoldDialog] = useState(false);
   const [holdLabel, setHoldLabel] = useState("");
+  const [unitPickerProduct, setUnitPickerProduct] = useState<ProductSearch | null>(null);
 
   const { data: settings } = useQuery({
     queryKey: ["store-settings"],
@@ -167,6 +168,28 @@ export function PosInterface() {
     } else {
       toast({ title: "Tidak ditemukan", description: "Barcode tidak terdaftar", variant: "destructive" });
     }
+  };
+
+  const handleProductClick = (product: ProductSearch) => {
+    const extraUnits = product.unitPrices?.filter((up) => up.unitId !== product.baseUnitId) ?? [];
+    if (extraUnits.length > 0) {
+      setUnitPickerProduct(product);
+    } else {
+      addToCart(product);
+    }
+  };
+
+  const returnSale = async (saleId: number) => {
+    if (!window.confirm("Retur transaksi ini? Stok akan dikembalikan.")) return;
+    const res = await fetch(`/api/sales/${saleId}/return`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    if (!res.ok) {
+      const err = await res.json();
+      toast({ title: "Gagal", description: err.error ?? "Retur gagal", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Berhasil", description: "Retur penjualan berhasil" });
+    refetchSales();
+    queryClient.invalidateQueries({ queryKey: ["products"] });
   };
 
   const reprintSale = async (saleId: number) => {
@@ -394,7 +417,7 @@ export function PosInterface() {
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => addToCart(p)}
+                    onClick={() => handleProductClick(p)}
                     className="flex items-center justify-between rounded-lg border p-3 text-left transition hover:border-primary hover:bg-primary/5"
                   >
                     <div>
@@ -404,6 +427,25 @@ export function PosInterface() {
                     <span className="font-semibold text-primary">{formatCurrency(Number(p.sellPrice))}</span>
                   </button>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {unitPickerProduct && (
+            <Card className="border-primary">
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm">Pilih Satuan — {unitPickerProduct.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2 pb-4">
+                <Button size="sm" onClick={() => { addToCart(unitPickerProduct); setUnitPickerProduct(null); }}>
+                  {unitPickerProduct.baseUnit.name} — {formatCurrency(Number(unitPickerProduct.sellPrice))}
+                </Button>
+                {unitPickerProduct.unitPrices.filter((up) => up.unitId !== unitPickerProduct.baseUnitId).map((up) => (
+                  <Button key={up.unitId} size="sm" variant="outline" onClick={() => { addToCart(unitPickerProduct, up.unitId); setUnitPickerProduct(null); }}>
+                    {up.unit.name} — {formatCurrency(Number(up.sellPrice))}
+                  </Button>
+                ))}
+                <Button size="sm" variant="ghost" onClick={() => setUnitPickerProduct(null)}>Batal</Button>
               </CardContent>
             </Card>
           )}
@@ -459,6 +501,9 @@ export function PosInterface() {
                         <span className="font-semibold">{formatCurrency(sale.total)}</span>
                         <Button variant="outline" size="sm" onClick={() => reprintSale(sale.id)}>
                           <Printer className="h-3 w-3" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => returnSale(sale.id)} title="Retur">
+                          <RotateCcw className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
                     </div>

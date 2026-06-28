@@ -148,11 +148,13 @@ model Supplier {
   name      String
   contact   String?
   address   String?    @db.Text
+  balance   Decimal    @default(0) @db.Decimal(15, 2)
   isActive  Boolean    @default(true) @map("is_active")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
   products  Product[]
   purchases Purchase[]
+  payments  Payment[]
 
   @@map("suppliers")
 }
@@ -246,6 +248,8 @@ model Purchase {
   discount      Decimal        @default(0) @db.Decimal(15, 2)
   tax           Decimal        @default(0) @db.Decimal(15, 2)
   total         Decimal        @default(0) @db.Decimal(15, 2)
+  paid          Decimal        @default(0) @db.Decimal(15, 2)
+  paymentMethod PaymentMethod  @default(CASH) @map("payment_method")
   status        PurchaseStatus @default(COMPLETED)
   notes         String?        @db.Text
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -368,10 +372,12 @@ model Payment {
   saleId     Int?          @map("sale_id")
   purchaseId Int?          @map("purchase_id")
   customerId Int?          @map("customer_id")
+  supplierId Int?          @map("supplier_id")
   createdAt  DateTime      @default(now()) @map("created_at")
   sale       Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
   purchase   Purchase?     @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   customer   Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier   Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   @@index([type])
   @@index([date])

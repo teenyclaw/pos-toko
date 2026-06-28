@@ -23,6 +23,8 @@ import {
   Sun,
   LogOut,
   Store,
+  Receipt,
+  Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,8 @@ const iconMap = {
   BarChart3,
   Settings,
   UserCog,
+  Receipt,
+  Wallet,
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

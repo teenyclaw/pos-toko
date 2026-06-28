@@ -82,7 +82,49 @@ export const purchaseSchema = z.object({
   items: z.array(purchaseItemSchema).min(1),
   discount: z.number().min(0).default(0),
   tax: z.number().min(0).default(0),
+  paymentMethod: z.enum(["CASH", "TRANSFER", "TEMPO"]).default("CASH"),
+  paid: z.number().min(0).default(0),
   notes: z.string().optional(),
+});
+
+export const expenseSchema = z.object({
+  title: z.string().min(2, "Judul minimal 2 karakter"),
+  amount: z.coerce.number().positive("Nominal harus lebih dari 0"),
+  category: z.string().optional(),
+  date: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const paymentCollectionSchema = z.object({
+  customerId: z.number().int().positive().optional(),
+  supplierId: z.number().int().positive().optional(),
+  amount: z.coerce.number().positive("Nominal harus lebih dari 0"),
+  method: z.enum(["CASH", "QRIS", "TRANSFER"]).default("CASH"),
+  notes: z.string().optional(),
+});
+
+export const productUnitPriceSchema = z.object({
+  unitId: z.number().int().positive(),
+  sellPrice: z.coerce.number().min(0),
+});
+
+export const unitConversionSchema = z.object({
+  fromUnitId: z.number().int().positive(),
+  toUnitId: z.number().int().positive(),
+  factor: z.coerce.number().positive("Faktor konversi harus positif"),
+});
+
+export const productWithUnitsSchema = productSchema.extend({
+  unitPrices: z.array(productUnitPriceSchema).optional(),
+  conversions: z.array(unitConversionSchema).optional(),
+});
+
+export const saleReturnSchema = z.object({
+  reason: z.string().optional(),
+});
+
+export const purchaseReturnSchema = z.object({
+  reason: z.string().optional(),
 });
 
 export const stockAdjustmentSchema = z.object({

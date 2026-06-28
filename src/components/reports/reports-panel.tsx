@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-type ReportTab = "sales" | "purchases" | "best-sellers" | "low-stock";
+type ReportTab = "sales" | "purchases" | "best-sellers" | "low-stock" | "profit-loss";
 
 export function ReportsPanel() {
   const [tab, setTab] = useState<ReportTab>("sales");
@@ -36,6 +36,7 @@ export function ReportsPanel() {
     { id: "purchases", label: "Pembelian" },
     { id: "best-sellers", label: "Terlaris" },
     { id: "low-stock", label: "Stok Menipis" },
+    { id: "profit-loss", label: "Laba Rugi" },
   ];
 
   const handleExportExcel = () => {
@@ -164,6 +165,16 @@ export function ReportsPanel() {
         </div>
       )}
 
+      {data?.summary && tab === "profit-loss" && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Pendapatan</p><p className="text-xl font-bold text-primary">{formatCurrency(data.summary.revenue)}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">HPP</p><p className="text-xl font-bold">{formatCurrency(data.summary.cogs)}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Laba Kotor</p><p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.grossProfit)}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Beban</p><p className="text-xl font-bold text-destructive">{formatCurrency(data.summary.expenses)}</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Laba Bersih</p><p className="text-xl font-bold">{formatCurrency(data.summary.netProfit)}</p></CardContent></Card>
+        </div>
+      )}
+
       {data?.summary && tab === "purchases" && (
         <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Total Pembelian</p><p className="text-2xl font-bold">{formatCurrency(data.summary.totalPurchases)} ({data.summary.count} transaksi)</p></CardContent></Card>
       )}
@@ -203,6 +214,17 @@ export function ReportsPanel() {
                 <tbody>
                   {data?.data?.map((r: { name: string; qty: number; total: number }, i: number) => (
                     <tr key={i} className="border-b"><td className="px-4 py-2">{i + 1}</td><td className="px-4 py-2 font-medium">{r.name}</td><td className="px-4 py-2 text-right">{r.qty}</td><td className="px-4 py-2 text-right">{formatCurrency(r.total)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : tab === "profit-loss" ? (
+              <table className="w-full text-sm">
+                <thead><tr className="border-b bg-muted/50"><th className="px-4 py-2 text-left">Tanggal</th><th className="px-4 py-2 text-left">Beban</th><th className="px-4 py-2 text-left">Kategori</th><th className="px-4 py-2 text-right">Nominal</th></tr></thead>
+                <tbody>
+                  {data?.data?.length === 0 ? (
+                    <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">Tidak ada beban operasional pada periode ini</td></tr>
+                  ) : data?.data?.map((r: { title: string; category: string; amount: number; date: string }, i: number) => (
+                    <tr key={i} className="border-b"><td className="px-4 py-2">{format(new Date(r.date), "dd/MM/yyyy", { locale: localeId })}</td><td className="px-4 py-2">{r.title}</td><td className="px-4 py-2">{r.category}</td><td className="px-4 py-2 text-right text-destructive">{formatCurrency(r.amount)}</td></tr>
                   ))}
                 </tbody>
               </table>
