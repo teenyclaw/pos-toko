@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import type { z } from "zod";
 
-type ProductForm = z.infer<typeof productWithUnitsSchema>;
+type ProductForm = z.input<typeof productWithUnitsSchema>;
 
 interface Product {
   id: number;
